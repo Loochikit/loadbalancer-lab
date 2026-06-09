@@ -215,6 +215,11 @@ select, input[type="text"], input[type="range"] {
   outline: none;
 }
 
+select option {
+  background-color: #0f182a; /* Solid dark background for browser dropdown contrast */
+  color: var(--text-main);
+}
+
 select:focus, input[type="text"]:focus {
   border-color: var(--accent-cyan);
 }
