@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: loadbalancer-lab
+    runtime: docker
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: PROXY_PORT
+        value: 8090

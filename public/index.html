@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoadBalancer-Lab // Reverse Proxy & Chaos Engineering Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Chart.js CDN for live SRE graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  
+  <header>
+    <div class="brand">
+      <div class="brand-icon">L</div>
+      <div>
+        <h1>LoadBalancer-Lab</h1>
+        <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">HTTP Reverse Proxy & Chaos Simulator</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <div class="gateway-badge">
+        <span style="color: var(--accent-cyan);">PROXY PORT:</span>
+        <span style="color: #ffffff;">8090</span>
+      </div>
+      <button id="btnResetLogs" class="secondary danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: auto;">Reset SRE Logs</button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    
+    <!-- COLUMN 1: NODE POOL MANAGEMENT & CHAOS CONTROLS -->
+    <section class="column">
+      
+      <!-- Panel 1: Server Node List -->
+      <div class="card flex-grow" style="height: 60%; min-height: 320px;">
+        <div class="card-title">📡 Upstream Server Pool</div>
+        <div id="serversList" class="servers-list">
+          <div style="color: var(--text-dark); text-align: center; margin-top: 2rem;">Initializing servers...</div>
+        </div>
+      </div>
+
+      <!-- Panel 2: SRE Chaos Injectors -->
+      <div class="card" style="height: 40%; min-height: 220px;">
+        <div class="card-title">⚠️ Chaos Injection Control</div>
+        
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+            <label for="rangeLatency" style="margin: 0;">Proxy Latency Delay</label>
+            <span id="valLatency" style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--accent-orange); font-weight: bold;">0ms</span>
+          </div>
+          <input type="range" id="rangeLatency" min="0" max="2500" step="50" value="0">
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+            <label for="rangeFailures" style="margin: 0;">Inject Mock Failure Rate</label>
+            <span id="valFailures" style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--accent-red); font-weight: bold;">0%</span>
+          </div>
+          <input type="range" id="rangeFailures" min="0" max="100" step="5" value="0">
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUMN 2: TRAFFIC ARENA & CONDUIT CANVAS -->
+    <section class="column">
+      
+      <!-- Panel 1: Conduit Canvas -->
+      <div class="card flex-grow" style="height: 70%;">
+        <div class="card-title">
+          <span>🛣️ Active Routing Conduit Flow</span>
+          <span style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);">Client -> Load Balancer -> Backend Server Nodes</span>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="vectorCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Panel 2: Routing Config & Traffic Generator -->
+      <div class="card" style="height: 30%; min-height: 160px;">
+        <div class="card-title">⚡ Gateway Routing Engine</div>
+        
+        <div class="form-row" style="margin-bottom: 0.75rem;">
+          <div class="form-group">
+            <label for="selectAlgo">Proxy Routing Algorithm</label>
+            <select id="selectAlgo">
+              <option value="round-robin">Round-Robin (Standard)</option>
+              <option value="weighted-round-robin">Weighted Round-Robin (Capacity)</option>
+              <option value="least-connections">Least Connections</option>
+              <option value="ip-hash">IP Hashing (Sticky Session)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="rpsSelect">Traffic Generator RPS</label>
+            <select id="rpsSelect">
+              <option value="1">1 Request/sec</option>
+              <option value="2" selected>2 Requests/sec</option>
+              <option value="5">5 Requests/sec</option>
+              <option value="10">10 Requests/sec</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="btnTraffic">⚡ Start Traffic Generator</button>
+      </div>
+    </section>
+
+    <!-- COLUMN 3: SRE OBSERVE & PROXY LOGS -->
+    <section class="column">
+      
+      <!-- Panel 1: SRE Metrics & Live Charts -->
+      <div class="card flex-grow" style="height: 55%; min-height: 280px; display: flex; flex-direction: column;">
+        <div class="card-title">📊 Gateway Performance Telemetry</div>
+        
+        <!-- Circuit Breaker Status Indicator -->
+        <div class="circuit-card">
+          <div>
+            <div style="font-size: 0.6rem; text-transform: uppercase; color: var(--text-muted); font-weight: 500;">Circuit Status</div>
+            <span id="circuitStateText" class="circuit-state CLOSED">CLOSED</span>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.6rem; text-transform: uppercase; color: var(--text-muted); font-weight: 500;">Rolling Fail Ratio</div>
+            <strong id="valFailureRateWindow" style="font-size: 0.95rem; font-family: var(--font-mono); color: var(--accent-red);">0%</strong>
+          </div>
+        </div>
+
+        <!-- Metric header values -->
+        <div style="display: flex; gap: 0.5rem; justify-content: space-between; font-size: 0.7rem; border-bottom: 1px solid var(--card-border); padding-bottom: 0.35rem; margin-bottom: 0.5rem;">
+          <div>Requests: <span id="valTotalRequests" style="color: var(--accent-cyan); font-weight: bold;">0</span></div>
+          <div>Avg Latency: <span id="valAvgLatency" style="color: var(--accent-cyan); font-weight: bold;">0 ms</span></div>
+          <div>Failed: <span id="valTotalCost" style="color: var(--accent-red); font-weight: bold;">0</span></div>
+        </div>
+
+        <!-- Telemetry charts side-by-side -->
+        <div class="charts-grid">
+          <div class="chart-container">
+            <canvas id="latencyChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="scoreChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Live Proxy logs -->
+      <div class="card" style="height: 45%; min-height: 220px; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="card-title">📝 Gateway Proxy Audit Log</div>
+        <div id="auditList" class="audit-list">
+          <div style="color: var(--text-dark); text-align: center; margin-top: 2rem;">No queries recorded</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Custom Scripts -->
+  <script src="js/canvas-flow.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

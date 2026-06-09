@@ -1,0 +1,25 @@
+{
+  "name": "loadbalancer-lab",
+  "version": "1.0.0",
+  "description": "Functional HTTP Reverse Proxy Load Balancer & Chaos Engineering Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "load-balancer",
+    "reverse-proxy",
+    "chaos-engineering",
+    "sre",
+    "websockets"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
